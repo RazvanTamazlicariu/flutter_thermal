@@ -26,6 +26,7 @@ apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
+    namespace "com.muxable.flutter.thermal_example"
     compileSdkVersion= 34
 
     compileOptions {
@@ -42,7 +43,7 @@ android {
         applicationId "com.muxable.flutter.thermal_example"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
-        minSdkVersion 24
+        minSdkVersion flutter.minSdkVersion
         compileSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
