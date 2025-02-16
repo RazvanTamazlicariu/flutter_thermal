@@ -8,12 +8,10 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
 import androidx.annotation.NonNull
-import androidx.annotation.RequiresApi
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
-@RequiresApi(Build.VERSION_CODES.Q)
 class ThermalPlugin : FlutterPlugin {
     private lateinit var stateEventChannel: EventChannel
     private lateinit var methodChannel: MethodChannel
@@ -25,25 +23,27 @@ class ThermalPlugin : FlutterPlugin {
             flutterPluginBinding.applicationContext.getSystemService(Context.POWER_SERVICE)
                     as PowerManager
         stateEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "thermal/events")
-        stateEventChannel.setStreamHandler(object : EventChannel.StreamHandler,
-            PowerManager.OnThermalStatusChangedListener {
-            private lateinit var sink: EventChannel.EventSink
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            stateEventChannel.setStreamHandler(object : EventChannel.StreamHandler,
+                PowerManager.OnThermalStatusChangedListener {
+                private lateinit var sink: EventChannel.EventSink
 
-            override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
-                sink = events
-                powerManager.addThermalStatusListener(this)
-            }
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                    sink = events
+                    powerManager.addThermalStatusListener(this)
+                }
 
-            override fun onCancel(arguments: Any?) {
-                powerManager.removeThermalStatusListener(this)
-            }
+                override fun onCancel(arguments: Any?) {
+                    powerManager.removeThermalStatusListener(this)
+                }
 
-            override fun onThermalStatusChanged(status: Int) {
-                sink.success(status)
-            }
-        })
-        batteryTemperatureEventChannel =
-            EventChannel(flutterPluginBinding.binaryMessenger, "thermal/battery_temp/events")
+                override fun onThermalStatusChanged(status: Int) {
+                    sink.success(status)
+                }
+            })
+        }
+        batteryTemperatureEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "thermal/battery_temp/events")
+
         batteryTemperatureEventChannel.setStreamHandler(object : EventChannel.StreamHandler,
             BroadcastReceiver() {
             private lateinit var sink: EventChannel.EventSink
@@ -67,7 +67,13 @@ class ThermalPlugin : FlutterPlugin {
         methodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "thermal")
         methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
-                "getThermalStatus" -> result.success(powerManager.currentThermalStatus)
+                "getThermalStatus" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    result.success(powerManager.currentThermalStatus)
+                } else {
+                    //Api not available under Build.VERSION_CODES.Q
+                    result.success(-1)
+                }
+
                 else -> result.notImplemented()
             }
         }
